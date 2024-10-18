@@ -1,5 +1,7 @@
 package de.oliver.fancynpcs.api;
 
+import de.oliver.fancynpcs.api.actions.ActionTrigger;
+import de.oliver.fancynpcs.api.actions.NpcAction;
 import de.oliver.fancynpcs.api.utils.NpcEquipmentSlot;
 import de.oliver.fancynpcs.api.utils.SkinFetcher;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -8,7 +10,11 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 public class NpcData {
@@ -17,7 +23,8 @@ public class NpcData {
     private final String name;
     private final UUID creator;
     private String displayName;
-    private SkinFetcher skin;
+    private SkinFetcher.SkinData skin;
+    private boolean mirrorSkin;
     private Location location;
     private boolean showInTab;
     private boolean spawnEntity;
@@ -27,22 +34,21 @@ public class NpcData {
     private EntityType type;
     private Map<NpcEquipmentSlot, ItemStack> equipment;
     private Consumer<Player> onClick;
+    private Map<ActionTrigger, List<NpcAction.NpcActionData>> actions;
     private boolean turnToPlayer;
-    private String serverCommand;
-    private String playerCommand;
-    private List<String> messages;
     private float interactionCooldown;
+    private float scale;
     private Map<NpcAttribute, String> attributes;
+    private boolean isDirty;
     private boolean onlyVisibleToEnabled;
     private final List<String> onlyVisibleTo;
-    private boolean isDirty;
 
     public NpcData(
             String id,
             String name,
             UUID creator,
             String displayName,
-            SkinFetcher skin,
+            SkinFetcher.SkinData skin,
             Location location,
             boolean showInTab,
             boolean spawnEntity,
@@ -53,11 +59,11 @@ public class NpcData {
             Map<NpcEquipmentSlot, ItemStack> equipment,
             boolean turnToPlayer,
             Consumer<Player> onClick,
-            List<String> messages,
-            String serverCommand,
-            String playerCommand,
+            Map<ActionTrigger, List<NpcAction.NpcActionData>> actions,
             float interactionCooldown,
+            float scale,
             Map<NpcAttribute, String> attributes,
+            boolean mirrorSkin,
             boolean onlyVisibleToEnabled,
             List<String> onlyVisibleTo
     ) {
@@ -75,15 +81,15 @@ public class NpcData {
         this.type = type;
         this.equipment = equipment;
         this.onClick = onClick;
+        this.actions = actions;
         this.turnToPlayer = turnToPlayer;
-        this.serverCommand = serverCommand;
-        this.playerCommand = playerCommand;
-        this.messages = messages;
         this.interactionCooldown = interactionCooldown;
+        this.scale = scale;
         this.attributes = attributes;
+        this.mirrorSkin = mirrorSkin;
+        this.isDirty = true;
         this.onlyVisibleToEnabled = onlyVisibleToEnabled;
         this.onlyVisibleTo = onlyVisibleTo;
-        this.isDirty = true;
     }
 
     /**
@@ -103,14 +109,16 @@ public class NpcData {
         this.glowingColor = NamedTextColor.WHITE;
         this.onClick = p -> {
         };
+        this.actions = new ConcurrentHashMap<>();
         this.turnToPlayer = false;
-        this.messages = new ArrayList<>();
         this.interactionCooldown = 0;
-        this.equipment = new HashMap<>();
-        this.attributes = new HashMap<>();
+        this.scale = 1;
+        this.equipment = new ConcurrentHashMap<>();
+        this.attributes = new ConcurrentHashMap<>();
+        this.mirrorSkin = false;
+        this.isDirty = true;
         this.onlyVisibleToEnabled = false;
         this.onlyVisibleTo = new ArrayList<>();
-        this.isDirty = true;
     }
 
     public String getId() {
@@ -135,11 +143,11 @@ public class NpcData {
         return this;
     }
 
-    public SkinFetcher getSkin() {
+    public SkinFetcher.SkinData getSkin() {
         return skin;
     }
 
-    public NpcData setSkin(SkinFetcher skin) {
+    public NpcData setSkin(SkinFetcher.SkinData skin) {
         this.skin = skin;
         isDirty = true;
         return this;
@@ -242,6 +250,44 @@ public class NpcData {
         return this;
     }
 
+    public Map<ActionTrigger, List<NpcAction.NpcActionData>> getActions() {
+        return actions;
+    }
+
+    public NpcData setActions(Map<ActionTrigger, List<NpcAction.NpcActionData>> actions) {
+        this.actions = actions;
+        isDirty = true;
+        return this;
+    }
+
+    public List<NpcAction.NpcActionData> getActions(ActionTrigger trigger) {
+        return actions.getOrDefault(trigger, new ArrayList<>());
+    }
+
+    public NpcData setActions(ActionTrigger trigger, List<NpcAction.NpcActionData> actions) {
+        this.actions.put(trigger, actions);
+        isDirty = true;
+        return this;
+    }
+
+    public NpcData addAction(ActionTrigger trigger, int order, NpcAction action, String value) {
+        List<NpcAction.NpcActionData> a = actions.getOrDefault(trigger, new ArrayList<>());
+        a.add(new NpcAction.NpcActionData(order, action, value));
+        actions.put(trigger, a);
+
+        isDirty = true;
+        return this;
+    }
+
+    public NpcData removeAction(ActionTrigger trigger, NpcAction action) {
+        List<NpcAction.NpcActionData> a = actions.getOrDefault(trigger, new ArrayList<>());
+        a.removeIf(ad -> ad.action().equals(action));
+        actions.put(trigger, a);
+
+        isDirty = true;
+        return this;
+    }
+
     public boolean isTurnToPlayer() {
         return turnToPlayer;
     }
@@ -252,51 +298,22 @@ public class NpcData {
         return this;
     }
 
-    public String getServerCommand() {
-        return serverCommand;
-    }
-
-    public NpcData setServerCommand(String serverCommand) {
-        this.serverCommand = serverCommand;
-        isDirty = true;
-        return this;
-    }
-
-    public String getPlayerCommand() {
-        return playerCommand;
-    }
-
-    public NpcData setPlayerCommand(String playerCommand) {
-        this.playerCommand = playerCommand;
-        isDirty = true;
-        return this;
-    }
-
-    public List<String> getMessages() {
-        return messages;
-    }
-
-    public NpcData setMessages(List<String> messages) {
-        this.messages = messages;
-        return this;
-    }
-
-    public void addMessage(String message) {
-        messages.add(message);
-        isDirty = true;
-    }
-
-    public void removeMessage(int index) {
-        messages.remove(index);
-        isDirty = true;
-    }
-
     public float getInteractionCooldown() {
         return interactionCooldown;
     }
 
     public NpcData setInteractionCooldown(float interactionCooldown) {
         this.interactionCooldown = interactionCooldown;
+        return this;
+    }
+
+    public float getScale() {
+        return scale;
+    }
+
+    public NpcData setScale(float scale) {
+        this.scale = scale;
+        isDirty = true;
         return this;
     }
 
@@ -313,6 +330,16 @@ public class NpcData {
         for (NpcAttribute attribute : attributes.keySet()) {
             attribute.apply(npc, attributes.get(attribute));
         }
+    }
+
+    public boolean isMirrorSkin() {
+        return mirrorSkin;
+    }
+
+    public NpcData setMirrorSkin(boolean mirrorSkin) {
+        this.mirrorSkin = mirrorSkin;
+        isDirty = true;
+        return this;
     }
 
     public boolean isOnlyVisibleToEnabled() {
