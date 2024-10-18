@@ -384,46 +384,34 @@ public class NpcManagerImpl implements NpcManager {
                     attributes.put(attribute, value);
                 }
             }
-
-            boolean onlyVisibleToEnabled = false;
-            if (npcConfig.isConfigurationSection("npcs." + id + ".onlyVisibleToEnabled")) {
-                onlyVisibleToEnabled = npcConfig.getBoolean("npcs." + id + ".onlyVisibleToEnabled");
-            }
-
-            List<String> onlyVisibleTo = new ArrayList<>();
-            if (npcConfig.isConfigurationSection("npcs." + id + ".onlyVisibleTo")) {
-                onlyVisibleTo = npcConfig.getStringList("npcs." + id + ".onlyVisibleTo");
-            }
-
-            // TODO: remove when the 'message' field is removed, and just pass in the 'messages'
-            if (messages.isEmpty() && message != null && !message.isEmpty()) {
-                messages = new ArrayList<>();
-                messages.add(message);
-            }
+            boolean onlyVisibleToEnabled = npcConfig.isConfigurationSection("npcs." + id + ".onlyVisibleToEnabled")
+                    && npcConfig.getBoolean("npcs." + id + ".onlyVisibleToEnabled");
+            List<String> onlyVisibleTo = npcConfig.isConfigurationSection("npcs." + id + ".onlyVisibleTo")
+                    ? npcConfig.getStringList("npcs." + id + ".onlyVisibleTo") : new ArrayList<>();
 
             NpcData data = new NpcData(
-                id, 
-                name, 
-                creator, 
-                displayName, 
-                skin, 
-                location, 
-                showInTab, 
-                spawnEntity, 
-                collidable, 
-                glowing, 
-                glowingColor, 
-                type, 
-                new HashMap<>(), 
-                turnToPlayer, 
-                null, 
-                actions,
-                interactionCooldown, 
-                scale,
-                attributes, 
-                mirrorSkin,
-                onlyVisibleToEnabled, 
-                onlyVisibleTo
+                    id,
+                    name,
+                    creator,
+                    displayName,
+                    skin,
+                    location,
+                    showInTab,
+                    spawnEntity,
+                    collidable,
+                    glowing,
+                    glowingColor,
+                    type,
+                    new HashMap<>(),
+                    turnToPlayer,
+                    null,
+                    actions,
+                    interactionCooldown,
+                    scale,
+                    attributes,
+                    mirrorSkin,
+                    onlyVisibleToEnabled,
+                    onlyVisibleTo
             );
             Npc npc = npcAdapter.apply(data);
 

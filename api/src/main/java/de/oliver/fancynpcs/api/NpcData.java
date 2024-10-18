@@ -39,9 +39,9 @@ public class NpcData {
     private float interactionCooldown;
     private float scale;
     private Map<NpcAttribute, String> attributes;
+    private boolean isDirty;
     private boolean onlyVisibleToEnabled;
     private final List<String> onlyVisibleTo;
-    private boolean isDirty;
 
     public NpcData(
             String id,
@@ -63,7 +63,7 @@ public class NpcData {
             float interactionCooldown,
             float scale,
             Map<NpcAttribute, String> attributes,
-            boolean mirrorSkin
+            boolean mirrorSkin,
             boolean onlyVisibleToEnabled,
             List<String> onlyVisibleTo
     ) {
@@ -87,9 +87,9 @@ public class NpcData {
         this.scale = scale;
         this.attributes = attributes;
         this.mirrorSkin = mirrorSkin;
+        this.isDirty = true;
         this.onlyVisibleToEnabled = onlyVisibleToEnabled;
         this.onlyVisibleTo = onlyVisibleTo;
-        this.isDirty = true;
     }
 
     /**
@@ -116,11 +116,9 @@ public class NpcData {
         this.equipment = new ConcurrentHashMap<>();
         this.attributes = new ConcurrentHashMap<>();
         this.mirrorSkin = false;
-        this.equipment = new HashMap<>();
-        this.attributes = new HashMap<>();
+        this.isDirty = true;
         this.onlyVisibleToEnabled = false;
         this.onlyVisibleTo = new ArrayList<>();
-        this.isDirty = true;
     }
 
     public String getId() {
@@ -340,6 +338,10 @@ public class NpcData {
 
     public NpcData setMirrorSkin(boolean mirrorSkin) {
         this.mirrorSkin = mirrorSkin;
+        isDirty = true;
+        return this;
+    }
+
     public boolean isOnlyVisibleToEnabled() {
         return onlyVisibleToEnabled;
     }

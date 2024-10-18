@@ -12,6 +12,7 @@ import de.oliver.fancynpcs.api.NpcData;
 import de.oliver.fancynpcs.api.events.NpcSpawnEvent;
 import de.oliver.fancynpcs.api.utils.NpcEquipmentSlot;
 import io.papermc.paper.adventure.PaperAdventure;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.minecraft.Optionull;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -84,6 +85,10 @@ public class Npc_1_21_1 extends Npc {
         ServerPlayer serverPlayer = ((CraftPlayer) player).getHandle();
 
         if (npc == null) {
+            return;
+        }
+
+        if (data.isOnlyVisibleToEnabled() && !data.getOnlyVisibleToPlayers().contains(player.getUniqueId().toString())) {
             return;
         }
 
@@ -221,7 +226,9 @@ public class Npc_1_21_1 extends Npc {
             team.setCollisionRule(Team.CollisionRule.NEVER);
         }
 
-        net.kyori.adventure.text.Component displayName = ModernChatColorHandler.translate(data.getDisplayName(), serverPlayer.getBukkitEntity());
+        net.kyori.adventure.text.Component displayName = data.getDisplayName().equalsIgnoreCase("<empty>")
+                ? MiniMessage.miniMessage().deserialize("<white>NPC</white>")
+                : ModernChatColorHandler.translate(data.getDisplayName(), serverPlayer.getBukkitEntity());
         Component vanillaComponent = PaperAdventure.asVanilla(displayName);
         if (!(npc instanceof ServerPlayer)) {
             npc.setCustomName(vanillaComponent);
